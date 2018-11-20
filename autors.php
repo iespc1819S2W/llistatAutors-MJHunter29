@@ -78,11 +78,30 @@ if (isset($_POST['darrer'])) {
 }
 //afegir autor
 if(isset($_POST['confirmarAlta'])){
-	$afegir=$mysqli->real_scape_string($_POST['altaAutor']);
+	$afegir=$mysqli->real_escape_string($_POST['altaAutor']);
 	$sql = "insert into autors(id_aut,nom_aut) values((select max(id_aut)+1 from autors as total),'$afegir') ";
 	$resultat=$mysqli->query($sql) or die($sql);
 	$ordenacio="id_aut_desc";
 	$orderBy="id_aut desc";
+}
+//editar
+$edita = "";
+$eliminar ="";
+if (isset($_POST["edita"])) {
+	$edita = $_POST["edita"];
+}
+if (isset($_POST["eliminar"])) {
+	$eliminar =$mysqli->real_escape_string($_POST["eliminar"]);
+	$sql = "delete from autors where id_aut = $eliminar"; 
+	$resultat = $mysqli->query($sql) or die($sql);
+}
+//confirmar
+if (isset($_POST["confirmar"])) {
+	$nouNomAutor = $mysqli->real_escape_string($_POST["autorEditat"]);
+	$idAutor = $mysqli->real_escape_string($_POST["confirmar"]);
+	$sql = "update autors set nom_aut='$nouNomAutor' where id_aut = $idAutor";
+	$resultat = $mysqli->query($sql) or die($sql);
+	//autorEditat confirmar
 }
 ?>
 
@@ -165,6 +184,7 @@ if(isset($_POST['confirmarAlta'])){
 		<tr>
 			<th>Codi</th>
 			<th>Nom Autor</th>
+			<th></th>
 		</tr>
 		
 		<?php 
@@ -175,10 +195,24 @@ if(isset($_POST['confirmarAlta'])){
 				$orderBy  LIMIT $tuplaInicial,$tuplesPagina";
 			$resultat = $mysqli->query($sql) or die($sql);//die es morir en ingles
 			while ($row = $resultat->fetch_assoc()) {
-			echo "<tr>";
+				if ($edita == $row["id_aut"]) {
+					echo "<tr>";
+				echo "<td>".$row["id_aut"]."</td>";
+				echo "<td><input type='text' name='autorEditat' value='{$row["nom_aut"]}' form='navegador'></td>";
+				echo "<td><button type='submit' class='btn btn-default' form='navegador' name='confirmar' value='{$row["id_aut"]}'><span class='glyphicon glyphicon-pencil'>Confirmar</span></button>
+					&nbsp;&nbsp;<button type='submit' class='btn btn-danger' form='navegador' name='cancelarAut' value='{$row["id_aut"]}'><ion-icon name='trash'>Cancelar</ion-icon></button>
+					</td>";
+			echo "</tr>";
+				}else{
+					echo "<tr>";
 				echo "<td>".$row["id_aut"]."</td>";
 				echo "<td>".$row["nom_aut"]."</td>";
+				echo "<td><button type='submit' class='btn btn-default' form='navegador' name='edita' value='{$row["id_aut"]}'><span class='glyphicon glyphicon-pencil'>Editar</span></button>
+					&nbsp;&nbsp;<button type='submit' class='btn btn-danger' form='navegador' name='eliminar' value='{$row["id_aut"]}'><ion-icon name='trash'>Borrar</ion-icon></button>
+					</td>";
 			echo "</tr>";
+				}
+			
 			}
 		?>
 	</table>
