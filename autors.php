@@ -1,14 +1,15 @@
 <?php 
 //conexio bbdd
-$host = "127.0.0.1";
-$user = "root";
-$passwd = "";
-$bbdd = "biblioteca";
-$mysqli = new mysqli($host,$user,$passwd,$bbdd);
-if(!$mysqli){
+define("PATHIMATGES", "/var/www/html/skills/llistatAutors-MJHunter29/img/autors/");
+$host = "127.0.0.1";//ponemos la ruta del host normalmente siempre es la misma
+$user = "root";//nuestro usuario de la base de datos
+$passwd = "tururu";//contraseña si hemos puesto claro, en caso que no comillas vacias
+$bbdd = "biblioteca";//la base de datos a la que accedemos ya que podemos tener varias
+$mysqli = new mysqli($host,$user,$passwd,$bbdd);//conectamos a la bbdd siempre tiene que ser en el orden host-usuario-contraseña-bbdd
+if(!$mysqli){//comprovamos que nos conectamos y en caso que no saltara el mensaje
 	die("La conexio a bbdd ha fallat");
 }
-$mysqli->set_charset("utf8");
+$mysqli->set_charset("utf8");//el encoding en el que tratamos el contenido de la bbdd
 //cercador
 
 $cercador="";
@@ -47,7 +48,7 @@ if (isset($_POST['tuplesPagina'])) {
 	$tuplesPagina = $_POST['tuplesPagina'];
 }
 //contar numero tuples
-$sql="select count(*) as numTuples from autors where nom_aut like '%$cercador%' or id_aut like '%$cercador%'";
+$sql="select count(*) as numTuples from AUTORS where nom_aut like '%$cercador%' or id_aut like '%$cercador%'";
 			$resultat = $mysqli->query($sql) or die($sql);
 			if ($row = $resultat->fetch_assoc()) {
 				$totalTuples = $row['numTuples'];
@@ -79,7 +80,7 @@ if (isset($_POST['darrer'])) {
 //afegir autor
 if(isset($_POST['confirmarAlta'])){
 	$afegir=$mysqli->real_escape_string($_POST['altaAutor']);
-	$sql = "insert into autors(id_aut,nom_aut) values((select max(id_aut)+1 from autors as total),'$afegir') ";
+	$sql = "insert into AUTORS(id_aut,nom_aut) values((select max(id_aut)+1 from AUTORS as total),'$afegir') ";
 	$resultat=$mysqli->query($sql) or die($sql);
 	$ordenacio="id_aut_desc";
 	$orderBy="id_aut desc";
@@ -92,17 +93,27 @@ if (isset($_POST["edita"])) {
 }
 if (isset($_POST["eliminar"])) {
 	$eliminar =$mysqli->real_escape_string($_POST["eliminar"]);
-	$sql = "delete from autors where id_aut = $eliminar"; 
+	$sql = "delete from AUTORS where id_aut = $eliminar"; 
 	$resultat = $mysqli->query($sql) or die($sql);
 }
 //confirmar
 if (isset($_POST["confirmar"])) {
 	$nouNomAutor = $mysqli->real_escape_string($_POST["autorEditat"]);
 	$idAutor = $mysqli->real_escape_string($_POST["confirmar"]);
-	$sql = "update autors set nom_aut='$nouNomAutor' where id_aut = $idAutor";
+	$foto = "";
+	if (isset($_FILES["newFoto"])) {
+		if(is_uploaded_file($_FILES["newFoto"]["tmp_name"])){
+			$extensio = pathinfo($_FILES["newFoto"]["name"],PATHINFO_EXTENSION);
+			$dir_subida = PATHIMATGES."$idAutor.$extensio";
+			move_uploaded_file($_FILES['newFoto']['tmp_name'],$dir_subida);
+			$foto = $idAutor.".".$extensio;
+		}
+	}
+	$sql = "update AUTORS set nom_aut='$nouNomAutor',foto='$foto' where id_aut = $idAutor";
 	$resultat = $mysqli->query($sql) or die($sql);
 	//autorEditat confirmar
 }
+
 ?>
 
 
@@ -134,7 +145,7 @@ if (isset($_POST["confirmar"])) {
 			 }
 		}
 	</script>
-	<title>Autors</title>
+	<title>AUTORS</title>
 </head>
 <body>
 	<div class="container">
@@ -183,6 +194,7 @@ if (isset($_POST["confirmar"])) {
 	<table id="tbLlista" class="table table-bordered">
 		<tr>
 			<th>Codi</th>
+			<th>Imatge</th>
 			<th>Nom Autor</th>
 			<th></th>
 		</tr>
@@ -191,13 +203,19 @@ if (isset($_POST["confirmar"])) {
 			//CONTAR TUPLES
 			
 			$tuplaInicial=($pagina-1)*$tuplesPagina;
-			$sql="select id_aut,nom_aut from autors where nom_aut like '%$cercador%' or id_aut like '%$cercador%' order by 
+			$sql="select id_aut,nom_aut,foto from AUTORS where nom_aut like '%$cercador%' or id_aut like '%$cercador%' order by 
 				$orderBy  LIMIT $tuplaInicial,$tuplesPagina";
 			$resultat = $mysqli->query($sql) or die($sql);//die es morir en ingles
 			while ($row = $resultat->fetch_assoc()) {
 				if ($edita == $row["id_aut"]) {
 					echo "<tr>";
 				echo "<td>".$row["id_aut"]."</td>";
+				echo "<td>";
+				if (!empty($row["foto"])){
+					echo "<img src='img/autors/{$row["foto"]}' style='width:50px;height:50px;'/>";
+				}
+				echo "<input type='file' name='newFoto' form='navegador' accept='image/*'>";
+				echo "</td>";
 				echo "<td><input type='text' name='autorEditat' value='{$row["nom_aut"]}' form='navegador'></td>";
 				echo "<td><button type='submit' class='btn btn-default' form='navegador' name='confirmar' value='{$row["id_aut"]}'><span class='glyphicon glyphicon-pencil'>Confirmar</span></button>
 					&nbsp;&nbsp;<button type='submit' class='btn btn-danger' form='navegador' name='cancelarAut' value='{$row["id_aut"]}'><ion-icon name='trash'>Cancelar</ion-icon></button>
@@ -206,6 +224,11 @@ if (isset($_POST["confirmar"])) {
 				}else{
 					echo "<tr>";
 				echo "<td>".$row["id_aut"]."</td>";
+				echo "<td>";
+				if (!empty($row["foto"])){
+					echo "<img src='img/autors/{$row["foto"]}' style='width:50px;height:50px;'/>";
+				}
+				echo "</td>";
 				echo "<td>".$row["nom_aut"]."</td>";
 				echo "<td><button type='submit' class='btn btn-default' form='navegador' name='edita' value='{$row["id_aut"]}'><span class='glyphicon glyphicon-pencil'>Editar</span></button>
 					&nbsp;&nbsp;<button type='submit' class='btn btn-danger' form='navegador' name='eliminar' value='{$row["id_aut"]}'><ion-icon name='trash'>Borrar</ion-icon></button>
@@ -216,7 +239,7 @@ if (isset($_POST["confirmar"])) {
 			}
 		?>
 	</table>
-	<form action="" method="post" id="navegador">
+	<form action="" method="post" id="navegador" enctype="multipart/form-data">
 		<input type="hidden" name="cercador" value="<?=$cercador?>">
 		<input type="hidden" name="ordenacio" value="<?=$ordenacio?>">
 		<input type="hidden" name="tuplesPagina" value="<?=$tuplesPagina?>">
